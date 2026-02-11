@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LauchaApp 🐭</title>
+    <title>LauchaApp ⚖️</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         * {
@@ -75,6 +75,15 @@
         .login-box h1 {
             font-size: 2.5rem;
             margin-bottom: 10px;
+        }
+
+        .login-box .avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-bottom: 15px;
+            border: 3px solid #667eea;
         }
 
         .login-box p {
@@ -475,7 +484,7 @@
 <body>
     <!-- Loading overlay (hidden by default) -->
     <div class="loading-overlay hidden" id="loadingOverlay">
-        🐭 Cargando...
+        ⚖️ Cargando...
     </div>
 
     <!-- Sync indicator -->
@@ -484,8 +493,8 @@
     <!-- Login Screen -->
     <div class="login-container" id="loginScreen">
         <div class="login-box">
-            <h1>🐭</h1>
-            <p>LauchaApp</p>
+            <img src="harvey.jpg" alt="Harvey Specter" class="avatar">
+            <p style="font-weight: 600; font-size: 1.2rem;">LauchaApp</p>
             <div class="form-group">
                 <input type="text" id="loginUser" placeholder="Usuario" autocomplete="username">
             </div>
@@ -503,7 +512,7 @@
         
         <div class="container">
             <header>
-                <h1>🐭 LauchaApp</h1>
+                <h1>⚖️ LauchaApp</h1>
                 <p style="color: #666; margin-top: 5px;">Seguimiento de pedidos</p>
             </header>
 
