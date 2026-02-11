@@ -620,8 +620,14 @@
         async function showApp() {
             document.getElementById('loginScreen').style.display = 'none';
             document.getElementById('appScreen').classList.add('show');
-            await initApp();
-            document.getElementById('loadingOverlay').classList.add('hidden');
+            try {
+                await initApp();
+            } catch (err) {
+                console.error('Error initializing app:', err);
+                alert('Error al conectar con el servidor. Recargá la página.');
+            } finally {
+                document.getElementById('loadingOverlay').classList.add('hidden');
+            }
         }
 
         function checkAuth() {
@@ -642,6 +648,11 @@
 
         // Check auth on load
         checkAuth();
+
+        // Safety: hide loading after 10s max
+        setTimeout(() => {
+            document.getElementById('loadingOverlay').classList.add('hidden');
+        }, 10000);
 
         // App initialization
         async function initApp() {
