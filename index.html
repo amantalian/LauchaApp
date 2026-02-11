@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LauchaApp 🐭</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         * {
             box-sizing: border-box;
@@ -31,6 +32,26 @@
         header h1 {
             font-size: 2rem;
             color: #333;
+        }
+
+        /* Loading overlay */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255,255,255,0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            font-size: 1.2rem;
+            color: #667eea;
+        }
+
+        .loading-overlay.hidden {
+            display: none;
         }
 
         /* Login styles */
@@ -137,6 +158,28 @@
             background: #eee;
         }
 
+        /* Sync indicator */
+        .sync-indicator {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 8px 12px;
+            background: #4caf50;
+            color: white;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .sync-indicator.show {
+            opacity: 1;
+        }
+
+        .sync-indicator.error {
+            background: #f44336;
+        }
+
         /* Form styles */
         .add-form {
             background: white;
@@ -239,6 +282,12 @@
         .btn-add:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-add:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
         }
 
         /* Tasks list */
@@ -424,6 +473,14 @@
     </style>
 </head>
 <body>
+    <!-- Loading overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        🐭 Cargando...
+    </div>
+
+    <!-- Sync indicator -->
+    <div class="sync-indicator" id="syncIndicator">✓ Guardado</div>
+
     <!-- Login Screen -->
     <div class="login-container" id="loginScreen">
         <div class="login-box">
@@ -473,7 +530,7 @@
                         <input type="text" id="asunto" placeholder="Descripción del pedido o tarea...">
                     </div>
                 </div>
-                <button class="btn-add" onclick="addTask()">➕ Agregar Pedido</button>
+                <button class="btn-add" id="btnAdd" onclick="addTask()">➕ Agregar Pedido</button>
             </div>
 
             <div id="pendingSection">
@@ -493,10 +550,55 @@
     </div>
 
     <script>
+        // Supabase config
+        const SUPABASE_URL = 'https://ubkcctqwtcrdrapyywog.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVia2NjdHF3dGNyZHJhcHl5d29nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4Mjc4NzAsImV4cCI6MjA4NjQwMzg3MH0.F9JuVBlGr6w_da0jyJJ2YOhslbP3wT4wyFuHgA7VeRI';
+        
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
         // Auth
         const VALID_USER = 'usuario';
         const VALID_PASS = '123';
 
+        // Data
+        let tasks = [];
+        let clientes = [];
+        let solicitantes = [];
+
+        // Sync indicator
+        function showSync(error = false) {
+            const indicator = document.getElementById('syncIndicator');
+            indicator.textContent = error ? '✗ Error al guardar' : '✓ Guardado';
+            indicator.classList.toggle('error', error);
+            indicator.classList.add('show');
+            setTimeout(() => indicator.classList.remove('show'), 2000);
+        }
+
+        // Load data from Supabase
+        async function loadData() {
+            try {
+                const [tasksRes, clientesRes, solicitantesRes] = await Promise.all([
+                    supabase.from('tasks').select('*').order('created_at', { ascending: true }),
+                    supabase.from('clientes').select('*').order('name'),
+                    supabase.from('solicitantes').select('*').order('name')
+                ]);
+
+                if (tasksRes.error) throw tasksRes.error;
+                if (clientesRes.error) throw clientesRes.error;
+                if (solicitantesRes.error) throw solicitantesRes.error;
+
+                tasks = tasksRes.data || [];
+                clientes = (clientesRes.data || []).map(c => c.name);
+                solicitantes = (solicitantesRes.data || []).map(s => s.name);
+
+                renderTasks();
+            } catch (err) {
+                console.error('Error loading data:', err);
+                showSync(true);
+            }
+        }
+
+        // Login
         function login() {
             const user = document.getElementById('loginUser').value;
             const pass = document.getElementById('loginPass').value;
@@ -515,15 +617,18 @@
             location.reload();
         }
 
-        function showApp() {
+        async function showApp() {
             document.getElementById('loginScreen').style.display = 'none';
             document.getElementById('appScreen').classList.add('show');
-            initApp();
+            await initApp();
+            document.getElementById('loadingOverlay').classList.add('hidden');
         }
 
         function checkAuth() {
             if (sessionStorage.getItem('lauchaapp_auth') === 'true') {
                 showApp();
+            } else {
+                document.getElementById('loadingOverlay').classList.add('hidden');
             }
         }
 
@@ -539,15 +644,11 @@
         checkAuth();
 
         // App initialization
-        function initApp() {
-            // Data
-            window.tasks = JSON.parse(localStorage.getItem('lauchaapp_tasks') || '[]');
-            window.clientes = JSON.parse(localStorage.getItem('lauchaapp_clientes') || '[]');
-            window.solicitantes = JSON.parse(localStorage.getItem('lauchaapp_solicitantes') || '[]');
+        async function initApp() {
+            await loadData();
 
-            setupCombobox('cliente', 'clienteList', clientes, saveClientes);
-            setupCombobox('solicitante', 'solicitanteList', solicitantes, saveSolicitantes);
-            renderTasks();
+            setupCombobox('cliente', 'clienteList', () => clientes);
+            setupCombobox('solicitante', 'solicitanteList', () => solicitantes);
 
             // Update times every minute
             setInterval(renderTasks, 60000);
@@ -558,50 +659,31 @@
             });
         }
 
-        // Save functions
-        function saveTasks() {
-            localStorage.setItem('lauchaapp_tasks', JSON.stringify(tasks));
-        }
-
-        function saveClientes() {
-            localStorage.setItem('lauchaapp_clientes', JSON.stringify(clientes));
-        }
-
-        function saveSolicitantes() {
-            localStorage.setItem('lauchaapp_solicitantes', JSON.stringify(solicitantes));
-        }
-
         // Combobox setup
-        function setupCombobox(inputId, listId, dataArray, saveFunc) {
+        function setupCombobox(inputId, listId, getDataArray) {
             const input = document.getElementById(inputId);
             const list = document.getElementById(listId);
 
             function updateList(filter = '') {
+                const dataArray = getDataArray();
                 const filtered = dataArray.filter(item => 
                     item.toLowerCase().includes(filter.toLowerCase())
                 );
                 
                 let html = filtered.map(item => 
-                    `<div class="combobox-item" data-value="${item}">${item}</div>`
+                    `<div class="combobox-item" data-value="${escapeHtml(item)}">${escapeHtml(item)}</div>`
                 ).join('');
 
                 if (filter && !dataArray.some(item => item.toLowerCase() === filter.toLowerCase())) {
-                    html += `<div class="combobox-item new-item" data-value="${filter}">+ Agregar "${filter}"</div>`;
+                    html += `<div class="combobox-item new-item" data-value="${escapeHtml(filter)}">+ Agregar "${escapeHtml(filter)}"</div>`;
                 }
 
                 list.innerHTML = html;
 
                 list.querySelectorAll('.combobox-item').forEach(item => {
                     item.addEventListener('click', () => {
-                        const value = item.dataset.value;
-                        input.value = value;
+                        input.value = item.dataset.value;
                         list.classList.remove('show');
-
-                        if (!dataArray.includes(value)) {
-                            dataArray.push(value);
-                            dataArray.sort();
-                            saveFunc();
-                        }
                     });
                 });
             }
@@ -648,66 +730,104 @@
         }
 
         // Add task
-        function addTask() {
-            const cliente = document.getElementById('cliente').value.trim();
-            const solicitante = document.getElementById('solicitante').value.trim();
-            const asunto = document.getElementById('asunto').value.trim();
+        async function addTask() {
+            const clienteInput = document.getElementById('cliente');
+            const solicitanteInput = document.getElementById('solicitante');
+            const asuntoInput = document.getElementById('asunto');
+            const btn = document.getElementById('btnAdd');
+
+            const cliente = clienteInput.value.trim();
+            const solicitante = solicitanteInput.value.trim();
+            const asunto = asuntoInput.value.trim();
 
             if (!cliente || !asunto) {
                 alert('Por favor completá al menos Cliente y Asunto');
                 return;
             }
 
-            // Add to lists if new
-            if (cliente && !clientes.includes(cliente)) {
-                clientes.push(cliente);
-                clientes.sort();
-                saveClientes();
+            btn.disabled = true;
+            btn.textContent = '⏳ Guardando...';
+
+            try {
+                // Add cliente if new
+                if (!clientes.includes(cliente)) {
+                    const { error } = await supabase.from('clientes').insert({ name: cliente });
+                    if (!error) clientes.push(cliente);
+                }
+
+                // Add solicitante if new
+                if (solicitante && !solicitantes.includes(solicitante)) {
+                    const { error } = await supabase.from('solicitantes').insert({ name: solicitante });
+                    if (!error) solicitantes.push(solicitante);
+                }
+
+                // Add task
+                const { data, error } = await supabase.from('tasks').insert({
+                    cliente,
+                    solicitante: solicitante || null,
+                    asunto,
+                    completed: false
+                }).select();
+
+                if (error) throw error;
+
+                tasks.push(data[0]);
+                renderTasks();
+                showSync();
+
+                // Clear form
+                clienteInput.value = '';
+                solicitanteInput.value = '';
+                asuntoInput.value = '';
+            } catch (err) {
+                console.error('Error adding task:', err);
+                showSync(true);
+                alert('Error al guardar. Intentá de nuevo.');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '➕ Agregar Pedido';
             }
-
-            if (solicitante && !solicitantes.includes(solicitante)) {
-                solicitantes.push(solicitante);
-                solicitantes.sort();
-                saveSolicitantes();
-            }
-
-            const task = {
-                id: Date.now(),
-                cliente,
-                solicitante,
-                asunto,
-                createdAt: new Date().toISOString(),
-                completed: false,
-                completedAt: null
-            };
-
-            tasks.push(task);
-            saveTasks();
-            renderTasks();
-
-            // Clear form
-            document.getElementById('cliente').value = '';
-            document.getElementById('solicitante').value = '';
-            document.getElementById('asunto').value = '';
         }
 
         // Toggle complete
-        function toggleComplete(id) {
+        async function toggleComplete(id) {
             const task = tasks.find(t => t.id === id);
-            if (task) {
-                task.completed = !task.completed;
-                task.completedAt = task.completed ? new Date().toISOString() : null;
-                saveTasks();
+            if (!task) return;
+
+            const newCompleted = !task.completed;
+            const completedAt = newCompleted ? new Date().toISOString() : null;
+
+            try {
+                const { error } = await supabase.from('tasks')
+                    .update({ completed: newCompleted, completed_at: completedAt })
+                    .eq('id', id);
+
+                if (error) throw error;
+
+                task.completed = newCompleted;
+                task.completed_at = completedAt;
                 renderTasks();
+                showSync();
+            } catch (err) {
+                console.error('Error updating task:', err);
+                showSync(true);
             }
         }
 
         // Delete task
-        function deleteTask(id) {
-            if (confirm('¿Eliminar este pedido?')) {
+        async function deleteTask(id) {
+            if (!confirm('¿Eliminar este pedido?')) return;
+
+            try {
+                const { error } = await supabase.from('tasks').delete().eq('id', id);
+                if (error) throw error;
+
                 tasks = tasks.filter(t => t.id !== id);
-                saveTasks();
                 renderTasks();
+                showSync();
+            } catch (err) {
+                console.error('Error deleting task:', err);
+                showSync(true);
             }
         }
 
@@ -715,25 +835,25 @@
         function renderTasks() {
             const pending = tasks
                 .filter(t => !t.completed)
-                .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt)); // oldest first
+                .sort((a, b) => new Date(a.created_at) - new Date(b.created_at)); // oldest first
 
             const completed = tasks
                 .filter(t => t.completed)
-                .sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt)); // newest first
+                .sort((a, b) => new Date(b.completed_at) - new Date(a.completed_at)); // newest first
 
             document.getElementById('pendingCount').textContent = pending.length;
             document.getElementById('completedCount').textContent = completed.length;
 
             const pendingHtml = pending.length ? pending.map(task => `
                 <div class="task-card">
-                    <div class="urgency-indicator ${getUrgencyClass(task.createdAt)}"></div>
+                    <div class="urgency-indicator ${getUrgencyClass(task.created_at)}"></div>
                     <div class="task-content">
                         <div class="task-subject">${escapeHtml(task.asunto)}</div>
                         <div class="task-meta">
                             <span>🏢 ${escapeHtml(task.cliente)}</span>
                             ${task.solicitante ? `<span>👤 ${escapeHtml(task.solicitante)}</span>` : ''}
                         </div>
-                        <div class="task-time">${timeAgo(task.createdAt)}</div>
+                        <div class="task-time">${timeAgo(task.created_at)}</div>
                     </div>
                     <div class="task-actions">
                         <button class="btn-complete" onclick="toggleComplete(${task.id})">✓</button>
@@ -755,7 +875,7 @@
                                 <span>🏢 ${escapeHtml(task.cliente)}</span>
                                 ${task.solicitante ? `<span>👤 ${escapeHtml(task.solicitante)}</span>` : ''}
                             </div>
-                            <div class="task-time">Completado ${timeAgo(task.completedAt)}</div>
+                            <div class="task-time">Completado ${timeAgo(task.completed_at)}</div>
                         </div>
                         <div class="task-actions">
                             <button class="btn-complete" onclick="toggleComplete(${task.id})">↩</button>
