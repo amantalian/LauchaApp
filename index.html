@@ -554,7 +554,7 @@
         const SUPABASE_URL = 'https://ubkcctqwtcrdrapyywog.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVia2NjdHF3dGNyZHJhcHl5d29nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4Mjc4NzAsImV4cCI6MjA4NjQwMzg3MH0.F9JuVBlGr6w_da0jyJJ2YOhslbP3wT4wyFuHgA7VeRI';
         
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         // Auth
         const VALID_USER = 'usuario';
@@ -578,9 +578,9 @@
         async function loadData() {
             try {
                 const [tasksRes, clientesRes, solicitantesRes] = await Promise.all([
-                    supabase.from('tasks').select('*').order('created_at', { ascending: true }),
-                    supabase.from('clientes').select('*').order('name'),
-                    supabase.from('solicitantes').select('*').order('name')
+                    db.from('tasks').select('*').order('created_at', { ascending: true }),
+                    db.from('clientes').select('*').order('name'),
+                    db.from('solicitantes').select('*').order('name')
                 ]);
 
                 if (tasksRes.error) throw tasksRes.error;
@@ -763,18 +763,18 @@
             try {
                 // Add cliente if new
                 if (!clientes.includes(cliente)) {
-                    const { error } = await supabase.from('clientes').insert({ name: cliente });
+                    const { error } = await db.from('clientes').insert({ name: cliente });
                     if (!error) clientes.push(cliente);
                 }
 
                 // Add solicitante if new
                 if (solicitante && !solicitantes.includes(solicitante)) {
-                    const { error } = await supabase.from('solicitantes').insert({ name: solicitante });
+                    const { error } = await db.from('solicitantes').insert({ name: solicitante });
                     if (!error) solicitantes.push(solicitante);
                 }
 
                 // Add task
-                const { data, error } = await supabase.from('tasks').insert({
+                const { data, error } = await db.from('tasks').insert({
                     cliente,
                     solicitante: solicitante || null,
                     asunto,
@@ -810,7 +810,7 @@
             const completedAt = newCompleted ? new Date().toISOString() : null;
 
             try {
-                const { error } = await supabase.from('tasks')
+                const { error } = await db.from('tasks')
                     .update({ completed: newCompleted, completed_at: completedAt })
                     .eq('id', id);
 
@@ -831,7 +831,7 @@
             if (!confirm('¿Eliminar este pedido?')) return;
 
             try {
-                const { error } = await supabase.from('tasks').delete().eq('id', id);
+                const { error } = await db.from('tasks').delete().eq('id', id);
                 if (error) throw error;
 
                 tasks = tasks.filter(t => t.id !== id);
