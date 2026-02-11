@@ -473,8 +473,8 @@
     </style>
 </head>
 <body>
-    <!-- Loading overlay -->
-    <div class="loading-overlay" id="loadingOverlay">
+    <!-- Loading overlay (hidden by default) -->
+    <div class="loading-overlay hidden" id="loadingOverlay">
         🐭 Cargando...
     </div>
 
@@ -605,6 +605,7 @@
 
             if (user === VALID_USER && pass === VALID_PASS) {
                 sessionStorage.setItem('lauchaapp_auth', 'true');
+                document.getElementById('loadingOverlay').classList.remove('hidden');
                 showApp();
             } else {
                 document.getElementById('loginError').classList.add('show');
@@ -632,10 +633,10 @@
 
         function checkAuth() {
             if (sessionStorage.getItem('lauchaapp_auth') === 'true') {
+                document.getElementById('loadingOverlay').classList.remove('hidden');
                 showApp();
-            } else {
-                document.getElementById('loadingOverlay').classList.add('hidden');
             }
+            // If not authenticated, login screen is already visible (no loading overlay)
         }
 
         // Enter key for login
