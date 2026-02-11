@@ -574,22 +574,32 @@
             font-style: italic;
         }
 
-        /* Quote */
-        .quote {
-            text-align: center;
-            padding: 40px 20px;
-            font-style: italic;
-            color: rgba(248, 246, 241, 0.4);
-            font-size: 0.9rem;
+        /* Card animations for urgency */
+        .task-card.urgency-yellow-card {
+            animation: blink 2s ease-in-out infinite;
         }
 
-        .quote::before {
-            content: '"';
-            font-size: 3rem;
-            color: var(--gold);
-            display: block;
-            line-height: 1;
-            opacity: 0.5;
+        .task-card.urgency-red-card {
+            animation: shake 0.5s ease-in-out infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { 
+                opacity: 1;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            }
+            50% { 
+                opacity: 0.7;
+                box-shadow: 0 4px 30px rgba(245, 158, 11, 0.4);
+            }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-2px); }
+            40% { transform: translateX(2px); }
+            60% { transform: translateX(-2px); }
+            80% { transform: translateX(2px); }
         }
 
         /* Mobile adjustments */
@@ -713,9 +723,6 @@
                 <div class="tasks-list" id="completedTasks"></div>
             </div>
 
-            <div class="quote">
-                Winners don't make excuses when the other side plays the game.
-            </div>
         </div>
     </div>
 
@@ -1069,9 +1076,13 @@
             document.getElementById('pendingCount').textContent = pending.length;
             document.getElementById('completedCount').textContent = completed.length;
 
-            const pendingHtml = pending.length ? pending.map(task => `
-                <div class="task-card">
-                    <div class="urgency-indicator ${getUrgencyClass(task.created_at)}"></div>
+            const pendingHtml = pending.length ? pending.map(task => {
+                const urgency = getUrgencyClass(task.created_at);
+                const cardClass = urgency === 'urgency-yellow' ? 'urgency-yellow-card' : 
+                                  urgency === 'urgency-red' ? 'urgency-red-card' : '';
+                return `
+                <div class="task-card ${cardClass}">
+                    <div class="urgency-indicator ${urgency}"></div>
                     <div class="task-content">
                         <div class="task-subject">${escapeHtml(task.asunto)}</div>
                         <div class="task-meta">
@@ -1085,7 +1096,7 @@
                         <button class="btn-delete" onclick="deleteTask(${task.id})" title="Eliminar">✕</button>
                     </div>
                 </div>
-            `).join('') : '<div class="empty-state">No hay casos pendientes. Time to close more deals.</div>';
+            `;}).join('') : '<div class="empty-state">No hay casos pendientes. Time to close more deals.</div>';
 
             document.getElementById('pendingTasks').innerHTML = pendingHtml;
 
