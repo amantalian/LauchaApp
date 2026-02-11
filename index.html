@@ -580,11 +580,12 @@
 
         // Load data from Supabase
         async function loadData() {
+            const userId = sessionStorage.getItem('lauchaapp_user_id');
             try {
                 const [tasksRes, clientesRes, solicitantesRes] = await Promise.all([
-                    db.from('tasks').select('*').order('created_at', { ascending: true }),
-                    db.from('clientes').select('*').order('name'),
-                    db.from('solicitantes').select('*').order('name')
+                    db.from('tasks').select('*').eq('user_id', userId).order('created_at', { ascending: true }),
+                    db.from('clientes').select('*').eq('user_id', userId).order('name'),
+                    db.from('solicitantes').select('*').eq('user_id', userId).order('name')
                 ]);
 
                 if (tasksRes.error) throw tasksRes.error;
@@ -637,6 +638,7 @@
 
                 sessionStorage.setItem('lauchaapp_auth', 'true');
                 sessionStorage.setItem('lauchaapp_user', data.username);
+                sessionStorage.setItem('lauchaapp_user_id', data.id);
                 document.getElementById('loadingOverlay').classList.remove('hidden');
                 showApp();
             } catch (err) {
@@ -652,6 +654,7 @@
         function logout() {
             sessionStorage.removeItem('lauchaapp_auth');
             sessionStorage.removeItem('lauchaapp_user');
+            sessionStorage.removeItem('lauchaapp_user_id');
             location.reload();
         }
 
@@ -798,16 +801,17 @@
             btn.disabled = true;
             btn.textContent = '⏳ Guardando...';
 
+            const userId = sessionStorage.getItem('lauchaapp_user_id');
             try {
                 // Add cliente if new
                 if (!clientes.includes(cliente)) {
-                    const { error } = await db.from('clientes').insert({ name: cliente });
+                    const { error } = await db.from('clientes').insert({ name: cliente, user_id: userId });
                     if (!error) clientes.push(cliente);
                 }
 
                 // Add solicitante if new
                 if (solicitante && !solicitantes.includes(solicitante)) {
-                    const { error } = await db.from('solicitantes').insert({ name: solicitante });
+                    const { error } = await db.from('solicitantes').insert({ name: solicitante, user_id: userId });
                     if (!error) solicitantes.push(solicitante);
                 }
 
@@ -816,7 +820,8 @@
                     cliente,
                     solicitante: solicitante || null,
                     asunto,
-                    completed: false
+                    completed: false,
+                    user_id: userId
                 }).select();
 
                 if (error) throw error;
