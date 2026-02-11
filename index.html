@@ -33,6 +33,110 @@
             color: #333;
         }
 
+        /* Login styles */
+        .login-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 80vh;
+        }
+
+        .login-box {
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 360px;
+            text-align: center;
+        }
+
+        .login-box h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .login-box p {
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .login-box .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .login-box input {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+
+        .login-box input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .login-box .btn-login {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .login-box .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .login-error {
+            color: #f44336;
+            font-size: 0.9rem;
+            margin-top: 15px;
+            display: none;
+        }
+
+        .login-error.show {
+            display: block;
+        }
+
+        /* App hidden by default */
+        .app-container {
+            display: none;
+        }
+
+        .app-container.show {
+            display: block;
+        }
+
+        /* Logout button */
+        .logout-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 8px 16px;
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            color: #666;
+            transition: background 0.2s;
+        }
+
+        .logout-btn:hover {
+            background: #eee;
+        }
+
         /* Form styles */
         .add-form {
             background: white;
@@ -310,62 +414,149 @@
                 justify-content: flex-end;
                 margin-top: 10px;
             }
+
+            .logout-btn {
+                position: static;
+                display: block;
+                margin: 0 auto 20px;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>🐭 LauchaApp</h1>
-            <p style="color: #666; margin-top: 5px;">Seguimiento de pedidos</p>
-        </header>
+    <!-- Login Screen -->
+    <div class="login-container" id="loginScreen">
+        <div class="login-box">
+            <h1>🐭</h1>
+            <p>LauchaApp</p>
+            <div class="form-group">
+                <input type="text" id="loginUser" placeholder="Usuario" autocomplete="username">
+            </div>
+            <div class="form-group">
+                <input type="password" id="loginPass" placeholder="Contraseña" autocomplete="current-password">
+            </div>
+            <button class="btn-login" onclick="login()">Entrar</button>
+            <div class="login-error" id="loginError">Usuario o contraseña incorrectos</div>
+        </div>
+    </div>
 
-        <div class="add-form">
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="cliente">Cliente</label>
-                    <div class="combobox" id="clienteCombobox">
-                        <input type="text" id="cliente" placeholder="Seleccionar o agregar..." autocomplete="off">
-                        <div class="combobox-list" id="clienteList"></div>
+    <!-- Main App -->
+    <div class="app-container" id="appScreen">
+        <button class="logout-btn" onclick="logout()">🚪 Salir</button>
+        
+        <div class="container">
+            <header>
+                <h1>🐭 LauchaApp</h1>
+                <p style="color: #666; margin-top: 5px;">Seguimiento de pedidos</p>
+            </header>
+
+            <div class="add-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="cliente">Cliente</label>
+                        <div class="combobox" id="clienteCombobox">
+                            <input type="text" id="cliente" placeholder="Seleccionar o agregar..." autocomplete="off">
+                            <div class="combobox-list" id="clienteList"></div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="solicitante">Solicitante</label>
+                        <div class="combobox" id="solicitanteCombobox">
+                            <input type="text" id="solicitante" placeholder="Seleccionar o agregar..." autocomplete="off">
+                            <div class="combobox-list" id="solicitanteList"></div>
+                        </div>
                     </div>
                 </div>
-                <div class="form-group">
-                    <label for="solicitante">Solicitante</label>
-                    <div class="combobox" id="solicitanteCombobox">
-                        <input type="text" id="solicitante" placeholder="Seleccionar o agregar..." autocomplete="off">
-                        <div class="combobox-list" id="solicitanteList"></div>
+                <div class="form-row">
+                    <div class="form-group" style="flex: 2;">
+                        <label for="asunto">Asunto</label>
+                        <input type="text" id="asunto" placeholder="Descripción del pedido o tarea...">
                     </div>
                 </div>
+                <button class="btn-add" onclick="addTask()">➕ Agregar Pedido</button>
             </div>
-            <div class="form-row">
-                <div class="form-group" style="flex: 2;">
-                    <label for="asunto">Asunto</label>
-                    <input type="text" id="asunto" placeholder="Descripción del pedido o tarea...">
-                </div>
+
+            <div id="pendingSection">
+                <h2 class="section-title">
+                    📋 Pendientes <span class="count" id="pendingCount">0</span>
+                </h2>
+                <div class="tasks-list" id="pendingTasks"></div>
             </div>
-            <button class="btn-add" onclick="addTask()">➕ Agregar Pedido</button>
-        </div>
 
-        <div id="pendingSection">
-            <h2 class="section-title">
-                📋 Pendientes <span class="count" id="pendingCount">0</span>
-            </h2>
-            <div class="tasks-list" id="pendingTasks"></div>
-        </div>
-
-        <div id="completedSection" class="completed-section" style="display: none;">
-            <h2 class="section-title">
-                ✅ Completados <span class="count" id="completedCount">0</span>
-            </h2>
-            <div class="tasks-list" id="completedTasks"></div>
+            <div id="completedSection" class="completed-section" style="display: none;">
+                <h2 class="section-title">
+                    ✅ Completados <span class="count" id="completedCount">0</span>
+                </h2>
+                <div class="tasks-list" id="completedTasks"></div>
+            </div>
         </div>
     </div>
 
     <script>
-        // Data
-        let tasks = JSON.parse(localStorage.getItem('lauchaapp_tasks') || '[]');
-        let clientes = JSON.parse(localStorage.getItem('lauchaapp_clientes') || '[]');
-        let solicitantes = JSON.parse(localStorage.getItem('lauchaapp_solicitantes') || '[]');
+        // Auth
+        const VALID_USER = 'usuario';
+        const VALID_PASS = '123';
+
+        function login() {
+            const user = document.getElementById('loginUser').value;
+            const pass = document.getElementById('loginPass').value;
+
+            if (user === VALID_USER && pass === VALID_PASS) {
+                sessionStorage.setItem('lauchaapp_auth', 'true');
+                showApp();
+            } else {
+                document.getElementById('loginError').classList.add('show');
+                document.getElementById('loginPass').value = '';
+            }
+        }
+
+        function logout() {
+            sessionStorage.removeItem('lauchaapp_auth');
+            location.reload();
+        }
+
+        function showApp() {
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('appScreen').classList.add('show');
+            initApp();
+        }
+
+        function checkAuth() {
+            if (sessionStorage.getItem('lauchaapp_auth') === 'true') {
+                showApp();
+            }
+        }
+
+        // Enter key for login
+        document.getElementById('loginPass').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') login();
+        });
+        document.getElementById('loginUser').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') document.getElementById('loginPass').focus();
+        });
+
+        // Check auth on load
+        checkAuth();
+
+        // App initialization
+        function initApp() {
+            // Data
+            window.tasks = JSON.parse(localStorage.getItem('lauchaapp_tasks') || '[]');
+            window.clientes = JSON.parse(localStorage.getItem('lauchaapp_clientes') || '[]');
+            window.solicitantes = JSON.parse(localStorage.getItem('lauchaapp_solicitantes') || '[]');
+
+            setupCombobox('cliente', 'clienteList', clientes, saveClientes);
+            setupCombobox('solicitante', 'solicitanteList', solicitantes, saveSolicitantes);
+            renderTasks();
+
+            // Update times every minute
+            setInterval(renderTasks, 60000);
+
+            // Enter key to submit
+            document.getElementById('asunto').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') addTask();
+            });
+        }
 
         // Save functions
         function saveTasks() {
@@ -431,9 +622,6 @@
                 }
             });
         }
-
-        setupCombobox('cliente', 'clienteList', clientes, saveClientes);
-        setupCombobox('solicitante', 'solicitanteList', solicitantes, saveSolicitantes);
 
         // Time helpers
         function timeAgo(date) {
@@ -585,17 +773,6 @@
             div.textContent = text;
             return div.innerHTML;
         }
-
-        // Initial render
-        renderTasks();
-
-        // Update times every minute
-        setInterval(renderTasks, 60000);
-
-        // Enter key to submit
-        document.getElementById('asunto').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') addTask();
-        });
     </script>
 </body>
 </html>
