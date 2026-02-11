@@ -499,7 +499,7 @@
 
     <!-- Main App -->
     <div class="app-container" id="appScreen">
-        <button class="logout-btn" onclick="logout()">🚪 Salir</button>
+        <button class="logout-btn" onclick="logout()">🚪 <span id="loggedUser"></span> · Salir</button>
         
         <div class="container">
             <header>
@@ -556,9 +556,13 @@
         
         const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // Auth
-        const VALID_USER = 'usuario';
-        const VALID_PASS = '123';
+        // Hash function (SHA-256)
+        async function sha256(message) {
+            const msgBuffer = new TextEncoder().encode(message);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
 
         // Data
         let tasks = [];
@@ -599,28 +603,62 @@
         }
 
         // Login
-        function login() {
-            const user = document.getElementById('loginUser').value;
+        async function login() {
+            const user = document.getElementById('loginUser').value.trim();
             const pass = document.getElementById('loginPass').value;
+            const btn = document.querySelector('.btn-login');
+            const errorEl = document.getElementById('loginError');
 
-            if (user === VALID_USER && pass === VALID_PASS) {
+            if (!user || !pass) {
+                errorEl.textContent = 'Completá usuario y contraseña';
+                errorEl.classList.add('show');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = '⏳ Verificando...';
+            errorEl.classList.remove('show');
+
+            try {
+                const passHash = await sha256(pass);
+                
+                const { data, error } = await db.from('users')
+                    .select('id, username')
+                    .eq('username', user)
+                    .eq('password_hash', passHash)
+                    .single();
+
+                if (error || !data) {
+                    errorEl.textContent = 'Usuario o contraseña incorrectos';
+                    errorEl.classList.add('show');
+                    document.getElementById('loginPass').value = '';
+                    return;
+                }
+
                 sessionStorage.setItem('lauchaapp_auth', 'true');
+                sessionStorage.setItem('lauchaapp_user', data.username);
                 document.getElementById('loadingOverlay').classList.remove('hidden');
                 showApp();
-            } else {
-                document.getElementById('loginError').classList.add('show');
-                document.getElementById('loginPass').value = '';
+            } catch (err) {
+                console.error('Login error:', err);
+                errorEl.textContent = 'Error de conexión. Intentá de nuevo.';
+                errorEl.classList.add('show');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Entrar';
             }
         }
 
         function logout() {
             sessionStorage.removeItem('lauchaapp_auth');
+            sessionStorage.removeItem('lauchaapp_user');
             location.reload();
         }
 
         async function showApp() {
             document.getElementById('loginScreen').style.display = 'none';
             document.getElementById('appScreen').classList.add('show');
+            document.getElementById('loggedUser').textContent = sessionStorage.getItem('lauchaapp_user') || '';
             try {
                 await initApp();
             } catch (err) {
